@@ -589,9 +589,6 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 	// ============================== My code ==============================
 	// ============================== My code ==============================
 
-	clock_t start, end;
-	start = clock();
-	
 	// Use DIR to go through all files under the directory
 	DIR *d = opendir(filename);
 	if (!d) {
@@ -668,12 +665,12 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 			free_image(sized);
 			free(boxes);
 			free_ptrs((void **)probs, l.w*l.h*l.n);
-			//      if (filename) break;
+#ifdef SINGLE
+			break;
+#endif
 		}
 		dir = readdir(d);
 	}
-	end = clock();
-	fprintf(stdout, "Total processing time in seconds: %.6e\n", (double) (end - start) / CLOCKS_PER_SEC);
 }
 
 void run_detector(int argc, char **argv)
