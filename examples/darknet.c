@@ -3,6 +3,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
+#include <string.h>
 
 extern void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *filename, int top);
 extern void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen);
@@ -415,11 +417,43 @@ int main(int argc, char **argv)
     } else if (0 == strcmp(argv[1], "detector")){
         run_detector(argc, argv);
     } else if (0 == strcmp(argv[1], "detect")){
-        float thresh = find_float_arg(argc, argv, "-thresh", .24);
-        char *filename = (argc > 4) ? argv[4]: 0;
-        char *outfile = find_char_arg(argc, argv, "-out", 0);
+	float thresh = find_float_arg(argc, argv, "-thresh", .24);
+	char *filename = (argc > 4) ? argv[4]: 0;
+	char *outfile = find_char_arg(argc, argv, "-out", 0);
         int fullscreen = find_arg(argc, argv, "-fullscreen");
         test_detector("cfg/coco.data", argv[2], argv[3], filename, thresh, .5, outfile, fullscreen);
+        // =================== Change read one image to run image in a directory=================
+    } else if (0 == strcmp(argv[1], "mydetect")){
+	float thresh = find_float_arg(argc, argv, "-thresh", .24);
+	DIR *d = (argc > 4) ? opendir(argv[4]): NULL;
+	struct dirent *dir;
+	char *file = malloc(sizeof(char) * 255);
+	char *outfile = malloc(sizeof(char) * 255);
+        if (d) {
+		dir = readdir(d);
+		char *filename = dir -> d_name;
+		while (dir) {
+			if (strstr(filename, ".jpg") != NULL) {
+				strcpy(file, argv[4]);
+				strcat(file, "/\0");
+				strcat(file, filename);
+
+				strcpy(outfile, "result_\0");
+				strcat(outfile, filename);
+				fprintf(stdout, "File: %s\n", file);
+//				char *outfile = find_char_arg(argc, argv, "-out", 0);
+       				int fullscreen = find_arg(argc, argv, "-fullscreen");
+				test_detector("cfg/coco.data", argv[2], argv[3], file, thresh, .5, outfile, fullscreen);
+				fprintf(stdout, "Finished detecting the file\n");
+			}
+			dir = readdir(d);
+			filename = dir -> d_name;
+		}
+		free(filename);
+	} else {
+		fprintf(stderr, "Error: the directory cannot be openned\n");
+	}
+ 
     } else if (0 == strcmp(argv[1], "cifar")){
         run_cifar(argc, argv);
     } else if (0 == strcmp(argv[1], "go")){
