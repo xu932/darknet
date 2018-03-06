@@ -3,6 +3,7 @@
 #include "blas.h"
 #include "cuda.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -235,6 +236,80 @@ image **load_alphabet()
     return alphabets;
 }
 
+// =============================================================================================================================================================
+// =============================================================================================================================================================
+// ================================================================= My own draw detection function ============================================================
+// =============================================================================================================================================================
+// =============================================================================================================================================================
+
+void my_draw_detections(char * filename, image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)
+{
+    int i,j;
+    FILE *fpt = fopen(filename, "w");
+
+    for(i = 0; i < num; ++i){
+        char labelstr[4096] = {0};
+        int class = -1;
+        for(j = 0; j < classes; ++j){
+            if (probs[i][j] > thresh){
+                if (class < 0) {
+                    strcat(labelstr, names[j]);
+                    class = j;
+                } else {
+                    strcat(labelstr, ", ");
+                    strcat(labelstr, names[j]);
+                }
+                fprintf(fpt, "%s: %.0f%%\n", names[j], probs[i][j]*100);
+            }
+        }
+        if(class >= 0){
+            int width = im.h * .006;
+
+            //printf("%d %s: %.0f%%\n", i, names[class], prob*100);
+            int offset = class*123457 % classes;
+            float red = get_color(2,offset,classes);
+            float green = get_color(1,offset,classes);
+            float blue = get_color(0,offset,classes);
+            float rgb[3];
+
+            //width = prob*20+2;
+
+            rgb[0] = red;
+            rgb[1] = green;
+            rgb[2] = blue;
+            box b = boxes[i];
+
+            int left  = (b.x-b.w/2.)*im.w;
+            int right = (b.x+b.w/2.)*im.w;
+            int top   = (b.y-b.h/2.)*im.h;
+            int bot   = (b.y+b.h/2.)*im.h;
+
+            if(left < 0) left = 0;
+            if(right > im.w-1) right = im.w-1;
+            if(top < 0) top = 0;
+            if(bot > im.h-1) bot = im.h-1;
+	    fprintf(fpt, "left: %d\t\ttop: %d\t\tright: %d\t\tbot: %d\t\twidth:%d", left, top, right, bot, width);
+            fprintf(fpt, "\n\n\n");
+	    draw_box_width(im, left, top, right, bot, width, red, green, blue);
+            if (alphabet) {
+                image label = get_label(alphabet, labelstr, (im.h*.03)/10);
+                draw_label(im, top + width, left, label, rgb);
+                free_image(label);
+            }
+            if (masks){
+                image mask = float_to_image(14, 14, 1, masks[i]);
+                image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
+                image tmask = threshold_image(resized_mask, .5);
+                embed_image(tmask, im, left, top);
+                free_image(mask);
+                free_image(resized_mask);
+                free_image(tmask);
+            }
+        }
+    }
+    fclose(fpt);
+}
+
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)
 {
     int i,j;
@@ -287,7 +362,6 @@ void draw_detections(image im, int num, float thresh, box *boxes, float **probs,
             if(right > im.w-1) right = im.w-1;
             if(top < 0) top = 0;
             if(bot > im.h-1) bot = im.h-1;
-
             draw_box_width(im, left, top, right, bot, width, red, green, blue);
             if (alphabet) {
                 image label = get_label(alphabet, labelstr, (im.h*.03)/10);

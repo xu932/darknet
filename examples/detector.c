@@ -565,13 +565,14 @@ void validate_detector_recall(char *cfgfile, char *weightfile)
 	}
 }
 
-void _my_detect(char **names, network *net, char *filename, char *outfile, int fullscreen, float thresh, float hier_thresh, image **alphabet, int *count)
+void _my_detect(char **names, network *net, char *filename, char *outfile, int fullscreen, float thresh, float hier_thresh, image **alphabet, int *count, FILE *speed)
 {
 	int j;
 	double time;
 	float nms=.3;
 
-	char *input = malloc(sizeof(char) * 256);
+	char input[256] = {0};
+	char output[256] = {0};
 	// Use DIR to go through all files under the directory
 	DIR *d = opendir(filename);
 	if (!d) {
@@ -582,16 +583,16 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 	char *file;
 	while (dir) {
 		switch (dir -> d_type) {
-			case 4:
-				if (strcmp(dir -> d_name, ".") && strcmp(dir -> d_name, "..")) {
+			case 4:		// type directory
+				if (strcmp(dir -> d_name, ".") && strcmp(dir -> d_name, "..")) {	// make sure it is not those two special directory
 					char * new_folder = malloc(sizeof(char) * 256);
 					strcpy(new_folder, filename);
 					strcat(new_folder, "/");
 					strcat(new_folder, dir->d_name);
-					_my_detect(names, net, new_folder, outfile, fullscreen, thresh, hier_thresh, alphabet, count);
+					_my_detect(names, net, new_folder, outfile, fullscreen, thresh, hier_thresh, alphabet, count, speed);
 				}
 				break;
-			case 8:
+			case 8:		// type file
 				file = dir -> d_name;
 				// check if the file ends with .jpg
 				if (strstr(file, ".jpg") != NULL) {
@@ -599,8 +600,13 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 					strcpy(input, filename);
 					strcat(input, "/\0");
 					strcat(input, file);
-
-					fprintf(stdout, "File curringly processing: %s\n", input);
+					
+					strcpy(output, input);
+					output[strlen(input) - 3] = 't';
+					output[strlen(input) - 2] = 'x';
+					output[strlen(input) - 1] = 't';
+					
+					//fprintf(stdout, "File curringly processing: %s\n", input);
 					(*count)++;
 					/*
 					   if(filename){
@@ -633,11 +639,11 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 					float *X = sized.data;
 					time=what_time_is_it_now();
 					network_predict(net, X);
-					printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+					fprintf(speed, "%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
 					get_region_boxes(l, im.w, im.h, net->w, net->h, thresh, probs, boxes, masks, 0, 0, hier_thresh, 1);
 					//if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
 					if (nms) do_nms_sort(boxes, probs, l.w*l.h*l.n, l.classes, nms);
-					draw_detections(im, l.w*l.h*l.n, thresh, boxes, probs, masks, names, alphabet, l.classes);
+					my_draw_detections(output, im, l.w*l.h*l.n, thresh, boxes, probs, masks, names, alphabet, l.classes);
 					if(outfile){
 						save_image(im, outfile);
 					} else{
@@ -683,13 +689,14 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 	int count = 0;
 	start = what_time_is_it_now();
 	
-
-	_my_detect(names, net, filename, outfile, fullscreen, thresh, hier_thresh, alphabet, &count);
-
-
+	FILE *fpt = fopen("DetectionTime.txt", "w");
+	_my_detect(names, net, filename, outfile, fullscreen, thresh, hier_thresh, alphabet, &count, fpt);
+	
 	end = what_time_is_it_now();
-	fprintf(stdout, "Processing time: %lf\n", end - start);
-	fprintf(stdout, "FPS: %lf\n", count / (end - start));
+	fprintf(fpt, "\nProcessing time: %lf\n", end - start);
+	fprintf(fpt, "FPS: %lf\n", count / (end - start));
+	fclose(fpt);
+
 
 }
 
