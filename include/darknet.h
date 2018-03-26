@@ -703,7 +703,7 @@ box_label *read_boxes(char *filename, int *n);
 box float_to_box(float *f, int stride);
 
 // =============================== defining my own draw detection ====================================
-void my_draw_detections(char *filename, image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes);
+void my_draw_detections(FILE *fp, image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes);
 // ===================================================================================================
 
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes);

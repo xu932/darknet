@@ -242,11 +242,9 @@ image **load_alphabet()
 // =============================================================================================================================================================
 // =============================================================================================================================================================
 
-void my_draw_detections(char * filename, image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)
+void my_draw_detections(FILE * fpt, image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)
 {
     int i,j;
-    FILE *fpt = fopen(filename, "w");
-
     for(i = 0; i < num; ++i){
         char labelstr[4096] = {0};
         int class = -1;
@@ -288,8 +286,8 @@ void my_draw_detections(char * filename, image im, int num, float thresh, box *b
             if(right > im.w-1) right = im.w-1;
             if(top < 0) top = 0;
             if(bot > im.h-1) bot = im.h-1;
-	    fprintf(fpt, "left: %d\t\ttop: %d\t\tright: %d\t\tbot: %d\t\twidth:%d", left, top, right, bot, width);
-            fprintf(fpt, "\n\n\n");
+	    fprintf(fpt, "%d\t%d\t%d\t%d\t\n------------------------------\n", left, top, right, bot);
+/*
 	    draw_box_width(im, left, top, right, bot, width, red, green, blue);
             if (alphabet) {
                 image label = get_label(alphabet, labelstr, (im.h*.03)/10);
@@ -305,9 +303,10 @@ void my_draw_detections(char * filename, image im, int num, float thresh, box *b
                 free_image(resized_mask);
                 free_image(tmask);
             }
+*/
         }
     }
-    fclose(fpt);
+    fprintf(fpt, "==============================\n");
 }
 
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)
