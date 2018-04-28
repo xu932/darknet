@@ -306,7 +306,7 @@ void my_draw_detections(FILE * fpt, image im, int num, float thresh, box *boxes,
 */
         }
     }
-    fprintf(fpt, "==============================\n");
+//    fprintf(fpt, "==============================\n");
 }
 
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, float **masks, char **names, image **alphabet, int classes)

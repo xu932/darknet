@@ -608,6 +608,7 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 				file = dir -> d_name;
 				// check if the file ends with .jpg
 				if (strstr(file, ".jpg") != NULL) {
+
 					fprintf(speed, "%s\n", file);
 					strcpy(input, filename);
 					strcat(input, "/\0");
@@ -615,6 +616,9 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 					
 					(*count)++;
 					
+					time=what_time_is_it_now();
+// ===============================================================================================
+
 					image im = load_image_color(input,0,0);
 					image sized = letterbox_image(im, net->w, net->h);
 					
@@ -628,34 +632,24 @@ void _my_detect(char **names, network *net, char *filename, char *outfile, int f
 						masks = calloc(l.w*l.h*l.n, sizeof(float*));
 						for(j = 0; j < l.w*l.h*l.n; ++j) masks[j] = calloc(l.coords-4, sizeof(float *));
 					}
+// =============================================================================================
 
 					float *X = sized.data;
-					time=what_time_is_it_now();
 					network_predict(net, X);
-					fprintf(stdout, "%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
+
+// ==============================================================================================
+
+					double start = what_time_is_it_now();
 					get_region_boxes(l, im.w, im.h, net->w, net->h, thresh, probs, boxes, masks, 0, 0, hier_thresh, 1);
 					//if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
 					if (nms) do_nms_sort(boxes, probs, l.w*l.h*l.n, l.classes, nms);
 					my_draw_detections(speed, im, l.w*l.h*l.n, thresh, boxes, probs, masks, names, alphabet, l.classes);
+					
 
+					fprintf(stdout, "%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
 
-/*
-					if(outfile){
-						save_image(im, outfile);
-					} else{
-						save_image(im, "predictions");
-#ifdef OPENCV
-						cvNamedWindow("predictions", CV_WINDOW_NORMAL); 
-						if(fullscreen){
-							cvSetWindowProperty("predictions", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-						}
-						show_image(im, "predictions");
-						cvWaitKey(0);
-						cvDestroyAllWindows();
-#endif
-					}
-*/
-
+// =============================================================================================
+//
 					free_image(im);
 					free_image(sized);
 					free(boxes);
@@ -686,6 +680,8 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 	
 	strcpy(output, filename);
 	strcat(output, "/output.txt");
+	
+	
 	FILE *fpt = fopen(output, "w");
 	
 	start = what_time_is_it_now();
@@ -693,8 +689,8 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
 	_my_detect(names, net, filename, outfile, fullscreen, thresh, hier_thresh, alphabet, &count, fpt);
 	
 	end = what_time_is_it_now();
-	fprintf(stdout, "\nProcessing time: %lf\n", end - start);
-	fprintf(stdout, "FPS: %lf\n", count / (end - start));
+	fprintf(stderr, "\nProcessing time: %lf\n", end - start);
+	fprintf(stderr, "FPS: %lf\n", count / (end - start));
 	fclose(fpt);
 
 
